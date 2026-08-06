@@ -14,35 +14,28 @@ export interface UseSegmentNavigationProps {
 }
 
 export function useSegmentNavigation({ segmentElements, currentFocusedElement, dir, segmentAttributes }: UseSegmentNavigationProps) {
+  const segments = computed(() => Array.from(segmentElements.value))
+
   const currentSegmentIndex = computed(() =>
-    Array.from(segmentElements.value).findIndex(el =>
+    segments.value.findIndex(el =>
       segmentAttributes.every(attribute =>
         el.getAttribute(attribute) === currentFocusedElement.value?.getAttribute(attribute))))
 
-  const nextFocusableSegment = computed(() => {
-    const sign = dir.value === 'rtl' ? -1 : 1
-    const nextCondition = sign < 0 ? currentSegmentIndex.value < 0 : currentSegmentIndex.value > segmentElements.value.size - 1
-    if (nextCondition)
+  /** The segment `offset` positions away from the focused one, or `null` if there is none. */
+  function segmentAt(offset: number) {
+    if (currentSegmentIndex.value < 0)
       return null
-    const segmentToFocus = Array.from(segmentElements.value)[currentSegmentIndex.value + sign]
-    return segmentToFocus
-  })
+    return segments.value[currentSegmentIndex.value + offset] ?? null
+  }
 
-  const prevFocusableSegment = computed(() => {
-    const sign = dir.value === 'rtl' ? -1 : 1
-    const prevCondition = sign > 0 ? currentSegmentIndex.value < 0 : currentSegmentIndex.value > segmentElements.value.size - 1
-    if (prevCondition)
-      return null
-
-    const segmentToFocus = Array.from(segmentElements.value)[currentSegmentIndex.value - sign]
-    return segmentToFocus
-  })
+  const nextFocusableSegment = computed(() => segmentAt(dir.value === 'rtl' ? -1 : 1))
+  const prevFocusableSegment = computed(() => segmentAt(dir.value === 'rtl' ? 1 : -1))
 
   function focusNext() {
     // Auto-advance follows the segments' DOM order (the locale's format
     // order) regardless of writing direction; only arrow-key navigation is
     // direction-aware via nextFocusableSegment/prevFocusableSegment.
-    Array.from(segmentElements.value)[currentSegmentIndex.value + 1]?.focus()
+    segmentAt(1)?.focus()
   }
 
   return {
